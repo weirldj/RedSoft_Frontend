@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Staking Frontend</title>
+  <script src="https://cdn.ethers.io/lib/ethers-5.5.0.min.js" type="text/javascript"></script>
+</head>
+<body>
+  <h1>Staking Frontend</h1>
+
+  <h2>RedSoft Token (RST)</h2>
+
+  <button onclick="mintToken()">Mint Token</button>
+
+  <h2>Staking Contract</h2>
+
+  <h3>Stake</h3>
+  <label for="stakeAmount">Amount to Stake:</label>
+  <input type="number" id="stakeAmount" min="0">
+  <button onclick="stake()">Stake</button>
+
+  <h3>Unstake</h3>
+  <label for="unstakeAmount">Amount to Unstake:</label>
+  <input type="number" id="unstakeAmount" min="0">
+  <button onclick="unstake()">Unstake</button>
+
+  <h3>Claim Reward</h3>
+  <button onclick="claimReward()">Claim Reward</button>
+
+  <script type="text/javascript">
+    // Configure ethers.js with the appropriate provider
+    const provider = new ethers.providers.JsonRpcProvider('https://sepolia.infura.io/v3/2d69bc5ade1b4c039ca4540c10b8d919');
+
+    // Define the contract addresses
+    const tokenAddress = '0xdf0FDf611E0be9c94d7e9e15449502f5850a4E73>';
+    const stakingAddress = '0x62d216729E57fEE2b8435A36940F7EF0945c3b40';
+
+    // Define the contract ABIs
+    const tokenABI = [
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "Approval",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "value",
+				"type": "uint256"
+			}
+		],
+		"name": "Transfer",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "approve",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "subtractedValue",
+				"type": "uint256"
+			}
+		],
+		"name": "decreaseAllowance",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "addedValue",
+				"type": "uint256"
+			}
+		],
+		"name": "increaseAllowance",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "mintToken",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "transfer",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "transferFrom",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "spender",
+				"type": "address"
+			}
+		],
+		"name": "allowance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "decimals",
+		"outputs": [
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "name",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "symbol",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalSupply",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+    const stakingABI = [
+	{
+		"inputs": [],
+		"name": "claimReward",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "stake",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "unstake",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "_token",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_rewardRate",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "calculateReward",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "rewardRate",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "stakers",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "totalStaked",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lastStakedTimestamp",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "reward",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "token",
+		"outputs": [
+			{
+				"internalType": "contract IERC20",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+    // Create the contract instances
+    const tokenContract = new ethers.Contract(tokenAddress, tokenABI, provider);
+    const stakingContract = new ethers.Contract(stakingAddress, stakingABI, provider);
+
+    // Mint Token function
+    async function mintToken() {
+      try {
+        const signer = provider.getSigner();
+        const transaction = await tokenContract.connect(signer).mintToken('<RECIPIENT_ADDRESS>');
+        await transaction.wait();
+        alert('Token minted successfully!');
+      } catch (error) {
+        console.error(error);
+        alert('Error occurred while minting token');
+      }
+    }
+
+    // Stake function
+    async function stake() {
+      try {
+        const signer = provider.getSigner();
+        const amount = document.getElementById('stakeAmount').value;
+        const transaction = await stakingContract.connect(signer).stake(amount);
+        await transaction.wait();
+        alert('Stake successful!');
+      } catch (error) {
+        console.error(error);
+        alert('Error occurred while staking');
+      }
+    }
+
+    // Unstake function
+    async function unstake() {
+      try {
+        const signer = provider.getSigner();
+        const amount = document.getElementById('unstakeAmount').value;
+        const transaction = await stakingContract.connect(signer).unstake(amount);
+        await transaction.wait();
+        alert('Unstake successful!');
+      } catch (error) {
+        console.error(error);
+        alert('Error occurred while unstaking');
+      }
+    }
+
+    // Claim Reward function
+    async function claimReward() {
+      try {
+        const signer = provider.getSigner();
+        const transaction = await stakingContract.connect(signer).claimReward();
+        await transaction.wait();
+        alert('Reward claimed successfully!');
+      } catch (error) {
+        console.error(error);
+        alert('Error occurred while claiming reward');
+      }
+    }
+  </script>
+</body>
+</html>
